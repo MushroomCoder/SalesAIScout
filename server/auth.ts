@@ -153,15 +153,30 @@ export function setupAuth(app: Express) {
           role: "sdr",
           status: "pending"
         });
+        
+        return res.status(201).json({
+          ...user,
+          message: "Your account is pending admin approval"
+        });
       }
       
       // If user exists but isn't approved yet
       if (user.status === "pending") {
-        return res.status(403).json({ message: "Your account is pending admin approval" });
+        return res.status(403).json({ 
+          message: "Your account is pending admin approval",
+          username: user.username,
+          email: user.email,
+          status: user.status 
+        });
       }
       
       if (user.status === "rejected") {
-        return res.status(403).json({ message: "Your account has been rejected" });
+        return res.status(403).json({ 
+          message: "Your account has been rejected",
+          username: user.username,
+          email: user.email,
+          status: user.status 
+        });
       }
       
       // Log in the user

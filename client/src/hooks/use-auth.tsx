@@ -102,8 +102,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const sdrGoogleAuthMutation = useMutation({
     mutationFn: async (data: { googleId: string; email: string; name: string }) => {
-      const res = await apiRequest("POST", "/api/sdr/auth", data);
-      return await res.json();
+      try {
+        const res = await apiRequest("POST", "/api/sdr/auth", data);
+        const responseData = await res.json();
+        
+        // Check if there's a message about pending approval
+        if (res.status === 403 && responseData.message) {
+          throw new Error(responseData.message);
+        }
+        
+        return responseData;
+      } catch (error) {
+        throw error;
+      }
     },
     onSuccess: (user: User) => {
       queryClient.setQueryData(["/api/user"], user);
@@ -121,11 +132,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     },
     onError: (error: Error) => {
-      toast({
-        title: "Authentication failed",
-        description: error.message,
-        variant: "destructive",
-      });
+      // Special handling for pending/rejected accounts
+      if (error.message.includes("pending")) {
+        toast({
+          title: "Account Pending Approval",
+          description: "Your account is waiting for administrator approval. Please check back later.",
+          variant: "default", // Using default instead of destructive for informational messages
+        });
+      } else if (error.message.includes("rejected")) {
+        toast({
+          title: "Account Rejected",
+          description: "Your account request was rejected. Please contact an administrator for assistance.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Authentication failed",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
     },
   });
 
