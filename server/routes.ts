@@ -2,8 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
-import { simulateSearch } from "./scraper";
-import { generateAiAnalysis } from "./openai";
+import { searchProspects } from "./scraper";
 import { searchQuerySchema, insertChannelSchema, insertProspectSchema } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -169,16 +168,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Create a search record
       const searchQuery = parseResult.data;
-      const queryString = [
-        searchQuery.jobTitle,
-        searchQuery.industry,
-        searchQuery.location,
-        searchQuery.keywords
-      ].filter(Boolean).join(' ');
       
       const search = await storage.createSearch({
         userId: user.id,
-        query: queryString,
+        query: searchQuery.query,
         jobTitle: searchQuery.jobTitle,
         industry: searchQuery.industry,
         companySize: searchQuery.companySize,
@@ -200,11 +193,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'No channels available for search' });
       }
       
-      // Search for prospects using the scraper
-      const searchResults = await simulateSearch(searchQuery, channels);
-      
-      // Analyze results with AI and add probability scores
-      const analyzedResults = await generateAiAnalysis(searchResults, searchQuery);
+      // Search for prospects using the real web scraper
+      const analyzedResults = await searchProspects(searchQuery, channels);
       
       res.json(analyzedResults);
     } catch (error) {

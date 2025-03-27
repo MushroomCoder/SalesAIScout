@@ -7,6 +7,7 @@ async function testProspectSearchAndAI() {
   
   // Create a mock search query
   const searchQuery: SearchQuery = {
+    query: "Marketing professionals in SaaS companies focused on growth",
     jobTitle: "Marketing",
     industry: "SaaS",
     keywords: "growth automation"

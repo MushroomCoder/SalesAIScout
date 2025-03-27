@@ -98,6 +98,7 @@ export const insertSearchSchema = createInsertSchema(searches)
   .omit({ id: true, createdAt: true });
 
 export const searchQuerySchema = z.object({
+  query: z.string().min(1, "Search query is required"),
   jobTitle: z.string().optional(),
   industry: z.string().optional(),
   companySize: z.string().optional(),

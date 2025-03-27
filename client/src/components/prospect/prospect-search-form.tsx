@@ -21,6 +21,7 @@ import { Search, Loader2 } from "lucide-react";
 import { Channel } from "@shared/schema";
 
 const searchSchema = z.object({
+  query: z.string().min(1, "Search query is required"),
   jobTitle: z.string().optional(),
   industry: z.string().optional(),
   companySize: z.string().optional(),
@@ -45,6 +46,7 @@ export function ProspectSearchForm({ onSubmit, isLoading }: ProspectSearchFormPr
   const form = useForm<SearchFormValues>({
     resolver: zodResolver(searchSchema),
     defaultValues: {
+      query: "",
       jobTitle: "",
       industry: "",
       companySize: "",
@@ -70,6 +72,25 @@ export function ProspectSearchForm({ onSubmit, isLoading }: ProspectSearchFormPr
         <form onSubmit={form.handleSubmit(handleSubmit)}>
           <CardContent>
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-6">
+              <FormField
+                control={form.control}
+                name="query"
+                render={({ field }) => (
+                  <FormItem className="sm:col-span-6">
+                    <FormLabel>Search Query</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        placeholder="e.g. Marketing professionals in tech startup companies"
+                        disabled={isLoading}
+                      />
+                    </FormControl>
+                    <FormDescription>Main search query to find prospects</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
               <FormField
                 control={form.control}
                 name="jobTitle"
