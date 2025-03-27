@@ -15,10 +15,11 @@ export async function scrapeGoogle(query: string): Promise<ScrapedResult[]> {
   console.log(`Scraping Google for query: ${query}`);
   
   try {
-    // Launch a headless browser
+    // Launch a headless browser using the system-installed chromium
     const browser = await puppeteer.launch({
       headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox']
+      executablePath: '/nix/store/zi4f80l169xlmivz8vja8wlphq74qqk0-chromium-125.0.6422.141/bin/chromium',
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-gpu']
     });
     
     const page = await browser.newPage();
@@ -29,37 +30,120 @@ export async function scrapeGoogle(query: string): Promise<ScrapedResult[]> {
     // Navigate to Google with the search query
     await page.goto(`${GOOGLE_SEARCH_URL}?q=${encodeURIComponent(query)}`);
     
-    // Wait for search results to load
-    await page.waitForSelector('div.g');
+    // Wait for search results to load with a longer timeout
+    try {
+      await page.waitForSelector('div.g', { timeout: 10000 });
+    } catch (error) {
+      console.log('Timeout waiting for Google search results to load, proceeding anyway');
+    }
     
-    // Extract search results
+    // Extract search results with improved selectors for better compatibility
     const results = await page.evaluate(() => {
-      const searchResults: ScrapedResult[] = [];
+      const searchResults: Array<{
+        title: string;
+        link: string;
+        description: string;
+        source: string;
+      }> = [];
       
-      // Select all search result containers
-      const resultElements = document.querySelectorAll('div.g');
+      // Try different selectors for search results that might be used by Google
+      const resultSelectors = ['div.g', 'div.yuRUbf', 'div[data-sokoban-container]', 'div.tF2Cxc'];
+      let resultElements: NodeListOf<Element> = document.querySelectorAll('div.g');
       
-      resultElements.forEach((element) => {
-        // Extract title and link
-        const titleElement = element.querySelector('h3');
-        const linkElement = element.querySelector('a');
-        const descriptionElement = element.querySelector('.VwiC3b');
-        const sourceElement = element.querySelector('.UPmit');
-        
-        if (titleElement && linkElement) {
-          const title = titleElement.textContent || '';
-          const link = linkElement.getAttribute('href') || '';
-          const description = descriptionElement ? descriptionElement.textContent || '' : '';
-          const source = sourceElement ? sourceElement.textContent || '' : '';
-          
-          searchResults.push({
-            title,
-            link,
-            description,
-            source
-          });
+      // Try alternative selectors if the first one doesn't work
+      for (const selector of resultSelectors) {
+        const elements = document.querySelectorAll(selector);
+        if (elements.length > 0) {
+          resultElements = elements;
+          break;
         }
-      });
+      }
+      
+      if (resultElements.length === 0) {
+        // If no results found, log this information
+        console.log('No results found with standard selectors, trying fallback method');
+        
+        // Get all links that might be search results
+        const links = document.querySelectorAll('a');
+        
+        links.forEach(link => {
+          const href = link.getAttribute('href') || '';
+          // Filter for likely result links
+          if (href && href.startsWith('http') && !href.includes('google.com')) {
+            const parentElement = link.closest('div');
+            const title = link.textContent || '';
+            
+            // Look for text in parent elements that might be a description
+            const descElement = parentElement?.querySelector('div') || parentElement;
+            const description = descElement ? descElement.textContent || '' : '';
+            
+            searchResults.push({
+              title,
+              link: href,
+              description,
+              source: new URL(href).hostname
+            });
+          }
+        });
+      } else {
+        // Standard processing with found result elements
+        resultElements.forEach((element) => {
+          // Try different selectors for title
+          const titleSelectors = ['h3', 'h3.LC20lb', '.DKV0Md', '.vvjwJb'];
+          let titleElement = null;
+          
+          for (const selector of titleSelectors) {
+            const el = element.querySelector(selector);
+            if (el) {
+              titleElement = el;
+              break;
+            }
+          }
+          
+          // Try different selectors for link
+          const linkElement = element.querySelector('a');
+          
+          // Try different selectors for description
+          const descriptionSelectors = ['.VwiC3b', '.s3v9rd', '.lEBKkf'];
+          let descriptionElement = null;
+          
+          for (const selector of descriptionSelectors) {
+            const el = element.querySelector(selector);
+            if (el) {
+              descriptionElement = el;
+              break;
+            }
+          }
+          
+          // Try different selectors for source
+          const sourceSelectors = ['.UPmit', '.iUh30', '.tjvcx', 'cite'];
+          let sourceElement = null;
+          
+          for (const selector of sourceSelectors) {
+            const el = element.querySelector(selector);
+            if (el) {
+              sourceElement = el;
+              break;
+            }
+          }
+          
+          if (titleElement && linkElement) {
+            const title = titleElement.textContent?.trim() || '';
+            const link = linkElement.getAttribute('href') || '';
+            const description = descriptionElement ? descriptionElement.textContent?.trim() || '' : '';
+            const source = sourceElement ? sourceElement.textContent?.trim() || '' : '';
+            
+            if (title && link && !link.includes('google.com/search')) {
+              searchResults.push({
+                title,
+                link,
+                description,
+                source
+              });
+            }
+          }
+        });
+      }
       
       return searchResults;
     });
