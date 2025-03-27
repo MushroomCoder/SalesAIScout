@@ -1,8 +1,12 @@
 import { SearchQuery, Channel } from "@shared/schema";
 import puppeteer from 'puppeteer';
+import { analyzeSearchResultsWithLLM } from './groq';
 
 const GOOGLE_SEARCH_URL = 'https://www.google.com/search';
 const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36';
+
+// Flag to determine if we should use LLM analysis or rule-based analysis
+const USE_LLM_ANALYSIS = true;
 
 interface ScrapedResult {
   title: string;
@@ -19,7 +23,14 @@ export async function scrapeGoogle(query: string): Promise<ScrapedResult[]> {
     const browser = await puppeteer.launch({
       headless: true,
       executablePath: '/nix/store/zi4f80l169xlmivz8vja8wlphq74qqk0-chromium-125.0.6422.141/bin/chromium',
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-gpu']
+      args: [
+        '--no-sandbox', 
+        '--disable-setuid-sandbox', 
+        '--disable-gpu',
+        '--disable-dev-shm-usage',
+        '--disable-web-security',
+        '--disable-features=IsolateOrigins,site-per-process'
+      ]
     });
     
     const page = await browser.newPage();
@@ -27,12 +38,41 @@ export async function scrapeGoogle(query: string): Promise<ScrapedResult[]> {
     // Set a user agent to avoid being detected as a bot
     await page.setUserAgent(USER_AGENT);
     
+    // Set viewport to appear more like a regular browser
+    await page.setViewport({
+      width: 1366,
+      height: 768
+    });
+    
+    // Enable request interception for better logging
+    await page.setRequestInterception(true);
+    
+    page.on('request', (req) => {
+      // Skip images, fonts and stylesheets for faster loading
+      const resourceType = req.resourceType();
+      if (resourceType === 'image' || resourceType === 'font' || resourceType === 'stylesheet') {
+        req.abort();
+      } else {
+        req.continue();
+      }
+    });
+    
+    console.log('Navigating to Google search...');
     // Navigate to Google with the search query
-    await page.goto(`${GOOGLE_SEARCH_URL}?q=${encodeURIComponent(query)}`);
+    await page.goto(`${GOOGLE_SEARCH_URL}?q=${encodeURIComponent(query)}`, { 
+      waitUntil: 'networkidle2',
+      timeout: 30000
+    });
+    
+    // Take a screenshot to debug
+    await page.screenshot({ path: '/tmp/google-search.png' });
+    console.log('Screenshot saved to /tmp/google-search.png');
     
     // Wait for search results to load with a longer timeout
     try {
-      await page.waitForSelector('div.g', { timeout: 10000 });
+      console.log('Waiting for search results...');
+      await page.waitForSelector('div.g, .yuRUbf, div[data-header-feature], a[href^="http"]', { timeout: 15000 });
+      console.log('Search results loaded');
     } catch (error) {
       console.log('Timeout waiting for Google search results to load, proceeding anyway');
     }
@@ -406,12 +446,34 @@ export async function searchProspects(searchQuery: SearchQuery, channels: Channe
       return [];
     }
     
-    // Extract and analyze prospects from the search results
-    const prospects = await extractProspectsFromSearchResults(
-      searchResults, 
-      searchQuery,
-      channels
-    );
+    let prospects;
+    
+    // Use LLM analysis or rule-based analysis based on the flag
+    if (USE_LLM_ANALYSIS) {
+      console.log('Using LLM-based analysis for prospects');
+      prospects = await analyzeSearchResultsWithLLM(
+        searchResults,
+        searchQuery,
+        channels
+      );
+      
+      // If LLM analysis fails or returns empty results, fall back to rule-based analysis
+      if (!prospects || prospects.length === 0) {
+        console.log('LLM analysis returned no results, falling back to rule-based analysis');
+        prospects = await extractProspectsFromSearchResults(
+          searchResults, 
+          searchQuery,
+          channels
+        );
+      }
+    } else {
+      console.log('Using rule-based analysis for prospects');
+      prospects = await extractProspectsFromSearchResults(
+        searchResults, 
+        searchQuery,
+        channels
+      );
+    }
     
     return prospects;
   } catch (error) {

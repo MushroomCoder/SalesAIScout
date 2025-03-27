@@ -1,6 +1,5 @@
 import { SearchQuery } from "@shared/schema";
 import { analyzeSearchResultsWithLLM } from "./groq";
-import { searchProspects } from "./scraper";
 import { storage } from "./storage";
 
 // Mock search results for testing
@@ -25,7 +24,7 @@ const mockSearchResults = [
   }
 ];
 
-async function testProspectSearchAndAI() {
+async function testGroqAnalysis() {
   console.log("==== Testing Groq LLM-based prospect analysis ====");
   
   try {
@@ -72,16 +71,7 @@ async function testProspectSearchAndAI() {
     
     console.log("LLM Analysis Results:", JSON.stringify(llmResults, null, 2));
     
-    // Test the full search pipeline
-    console.log("\nTesting full search pipeline...");
-    const searchResults = await searchProspects(searchQuery, channels);
-    
-    console.log("Full Search Results:", JSON.stringify(searchResults, null, 2));
-    
-    return {
-      llmResults,
-      searchResults
-    };
+    return llmResults;
     
   } catch (error) {
     console.error("Test failed with error:", error);
@@ -90,7 +80,7 @@ async function testProspectSearchAndAI() {
 }
 
 // Run the test
-testProspectSearchAndAI()
+testGroqAnalysis()
   .then(results => {
     if (results) {
       console.log("Test completed successfully!");
@@ -102,4 +92,4 @@ testProspectSearchAndAI()
     console.error("Unhandled error during test:", error);
   });
 
-export { testProspectSearchAndAI };
+export { testGroqAnalysis };
