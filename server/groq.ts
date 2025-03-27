@@ -57,7 +57,7 @@ Description: ${result.description}
     })
     .join("\n");
 
-  // Construct the prompt for the LLM
+  // Construct the prompt for the LLM with one-shot examples
   const prompt = `
 You are an AI assistant specialized in sales development and prospect identification. 
 Your task is to analyze search results and identify potential sales prospects based on the provided search query.
@@ -82,6 +82,33 @@ For each search result that represents a potential professional or business prof
 4. Most appropriate channel ID from the available channels
 5. Match score (0-100) representing how well this prospect matches the search criteria
 
+Here are some examples of how to identify prospects and assign match scores:
+
+Example 1:
+Search result: "John Smith - AI Engineer at TechCorp | LinkedIn"
+Description: "AI Engineer with 5 years of experience in machine learning and neural networks."
+- This is a person profile on LinkedIn
+- Name: John Smith
+- Title: AI Engineer 
+- Company: TechCorp
+- Channel: Use the LinkedIn channel ID
+- Match score: High (80-90) if query is about AI or engineering, lower (50-60) for unrelated queries
+
+Example 2:
+Search result: "TechCorp - Leading AI Solutions Provider"
+Description: "We provide enterprise AI solutions for businesses. Contact us today."
+- This is a company page, not a person profile. Skip this result.
+
+Example 3:
+Search result: "Sarah Johnson (@sjohnson) | Twitter"
+Description: "Product Manager working on AI products. Tech enthusiast."
+- This is a person profile on Twitter
+- Name: Sarah Johnson
+- Title: Product Manager
+- Company: (not specified, can be left blank or use reasonable inference)
+- Channel: Use the Twitter channel ID
+- Match score: Assign based on relevance to the query
+
 Respond with a valid JSON array of prospects where each prospect has the following format:
 {
   "name": "Full Name",
@@ -92,7 +119,7 @@ Respond with a valid JSON array of prospects where each prospect has the followi
   "matchScore": [score from 0-100]
 }
 
-Include only results that appear to be actual people with professional profiles. Skip any result that is not a person.
+Include only results that appear to be actual people with professional profiles. Be creative in identifying potential prospects even if the information is incomplete. If a search result is ambiguous but might represent a person relevant to the query, include it with appropriate confidence scores. If the query is about a specific technology or service, look for professionals who work with that technology.
 `;
 
   try {

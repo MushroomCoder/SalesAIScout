@@ -87,7 +87,22 @@ export async function scrapeGoogle(query: string): Promise<ScrapedResult[]> {
       }> = [];
       
       // Try different selectors for search results that might be used by Google
-      const resultSelectors = ['div.g', 'div.yuRUbf', 'div[data-sokoban-container]', 'div.tF2Cxc'];
+      // Modern Google search result containers (2023-2025 designs)
+      const resultSelectors = [
+        // Primary result containers
+        'div.g', 
+        'div.Gx5Zad', 
+        'div.tF2Cxc',
+        'div[data-hveid]', 
+        // Secondary containers 
+        'div.yuRUbf', 
+        'div[data-sokoban-container]',
+        // Fallback to any div with a link containing search results
+        'div.hlcw0c',
+        'div.v5yQqb',
+        'div.MjjYud'
+      ];
+      
       let resultElements: NodeListOf<Element> = document.querySelectorAll('div.g');
       
       // Try alternative selectors if the first one doesn't work
@@ -99,32 +114,102 @@ export async function scrapeGoogle(query: string): Promise<ScrapedResult[]> {
         }
       }
       
+      // First attempt: Try to get structured search results
       if (resultElements.length === 0) {
         // If no results found, log this information
-        console.log('No results found with standard selectors, trying fallback method');
+        console.log('No results found with standard selectors, trying fallback methods');
         
-        // Get all links that might be search results
-        const links = document.querySelectorAll('a');
+        // More aggressive fallback: get all links that look like search results
+        const links = document.querySelectorAll('a[href^="http"]');
+        const processedHrefs = new Set(); // To avoid duplicates
         
-        links.forEach(link => {
-          const href = link.getAttribute('href') || '';
-          // Filter for likely result links
-          if (href && href.startsWith('http') && !href.includes('google.com')) {
-            const parentElement = link.closest('div');
-            const title = link.textContent || '';
+        // Try to find result containers by looking for Google's data attributes
+        const potentialResultContainers = document.querySelectorAll('[data-header-feature], [data-content-feature], [data-hveid], [data-ved]');
+        
+        // Process potential containers first
+        potentialResultContainers.forEach(container => {
+          const titleEl = container.querySelector('h3, h4, .LC20lb, [role="heading"]');
+          const linkEl = container.querySelector('a[href^="http"]');
+          
+          if (titleEl && linkEl) {
+            const href = linkEl.getAttribute('href') || '';
             
-            // Look for text in parent elements that might be a description
-            const descElement = parentElement?.querySelector('div') || parentElement;
-            const description = descElement ? descElement.textContent || '' : '';
-            
-            searchResults.push({
-              title,
-              link: href,
-              description,
-              source: new URL(href).hostname
-            });
+            if (href && !href.includes('google.com') && !processedHrefs.has(href)) {
+              processedHrefs.add(href);
+              
+              let descriptionText = '';
+              // Look for description text nearby
+              const descCandidates = container.querySelectorAll('div, span, p');
+              for (const desc of descCandidates) {
+                const text = desc.textContent || '';
+                if (text.length > 25 && text !== titleEl.textContent) {
+                  descriptionText = text;
+                  break;
+                }
+              }
+              
+              try {
+                searchResults.push({
+                  title: titleEl.textContent || '',
+                  link: href,
+                  description: descriptionText,
+                  source: new URL(href).hostname.replace('www.', '')
+                });
+              } catch (e) {
+                // Handle invalid URLs
+              }
+            }
           }
         });
+        
+        // If still no results, process all links as a last resort
+        if (searchResults.length === 0) {
+          links.forEach(link => {
+            const href = link.getAttribute('href') || '';
+            
+            // Filter for likely result links
+            if (href && 
+                !href.includes('google.com/search') && 
+                !href.includes('google.com/preferences') && 
+                !processedHrefs.has(href)) {
+              
+              processedHrefs.add(href);
+              const title = link.textContent || '';
+              
+              // Skip links without meaningful text
+              if (title.length < 3) return;
+              
+              // Look for text in surrounding elements that might be a description
+              let description = '';
+              const parent = link.parentElement;
+              
+              if (parent) {
+                // Look at siblings for description text
+                const siblings = Array.from(parent.parentElement?.children || []);
+                for (const sibling of siblings) {
+                  if (sibling !== parent && sibling.textContent) {
+                    const text = sibling.textContent.trim();
+                    if (text.length > 20 && text !== title) {
+                      description = text;
+                      break;
+                    }
+                  }
+                }
+              }
+              
+              try {
+                searchResults.push({
+                  title,
+                  link: href,
+                  description,
+                  source: new URL(href).hostname.replace('www.', '')
+                });
+              } catch (e) {
+                // Handle invalid URLs
+              }
+            }
+          });
+        }
       } else {
         // Standard processing with found result elements
         resultElements.forEach((element) => {
@@ -488,7 +573,15 @@ export async function searchProspects(searchQuery: SearchQuery, channels: Channe
 function buildEnhancedQuery(searchQuery: SearchQuery): string {
   const { query, jobTitle, industry, location, companySize } = searchQuery;
   
-  let enhancedQuery = query;
+  // Form a base query with keywords related to the main search term
+  let enhancedQuery = `${query}`;
+  
+  // Add related terms for "Custom AI Agents" and similar technologies
+  if (query.toLowerCase().includes('ai') || 
+      query.toLowerCase().includes('agent') || 
+      query.toLowerCase().includes('artificial intelligence')) {
+    enhancedQuery = `${query} "AI developer" OR "AI engineer" OR "AI product manager" OR "AI researcher"`;
+  }
   
   // Add job title if provided
   if (jobTitle) {
@@ -505,8 +598,21 @@ function buildEnhancedQuery(searchQuery: SearchQuery): string {
     enhancedQuery += ` ${location}`;
   }
   
+  // Expand search terms with alternative profile sources
+  const profileSources = [
+    'linkedin.com/in', 
+    'twitter.com', 
+    'github.com', 
+    'medium.com/@', 
+    'profile',
+    'bio',
+    '"head of"',
+    '"works at"',
+    '"working on"'
+  ];
+  
   // Add site-specific search terms to find profiles
-  enhancedQuery += ' (linkedin.com/in OR twitter.com OR profile)';
+  enhancedQuery += ` (${profileSources.join(' OR ')})`;
   
   return enhancedQuery;
 }
