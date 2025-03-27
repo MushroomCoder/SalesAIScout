@@ -53,14 +53,13 @@ export default function SidebarLayout({ children, role }: SidebarLayoutProps) {
     { href: "/admin", icon: <LayoutDashboard className="h-5 w-5" />, label: "Dashboard" },
     { href: "/admin/sdrs", icon: <Users className="h-5 w-5" />, label: "SDR Management" },
     { href: "/admin/channels", icon: <LinkIcon className="h-5 w-5" />, label: "Channels" },
-    { href: "/admin/prospects", icon: <UserSearch className="h-5 w-5" />, label: "Prospects" },
   ];
 
   const sdrNavItems = [
     { href: "/sdr", icon: <LayoutDashboard className="h-5 w-5" />, label: "Dashboard" },
     { href: "/sdr/search", icon: <Search className="h-5 w-5" />, label: "Prospect Search" },
     { href: "/sdr/prospects", icon: <UserSearch className="h-5 w-5" />, label: "My Prospects" },
-    { href: "/sdr/history", icon: <History className="h-5 w-5" />, label: "Activity History" },
+    { href: "/sdr/saved-prospects", icon: <History className="h-5 w-5" />, label: "Saved Prospects" },
   ];
 
   const navItems = role === "admin" ? adminNavItems : sdrNavItems;
