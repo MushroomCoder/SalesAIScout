@@ -109,33 +109,34 @@ export default function SidebarLayout({ children, role }: SidebarLayoutProps) {
         <nav className="mt-5 px-4 flex-1 overflow-y-auto">
           <div className="space-y-1">
             {navItems.map((item) => (
-              <Link key={item.href} href={item.href}>
-                <a
+              <Link 
+                key={item.href} 
+                href={item.href}
+                className={cn(
+                  "group flex items-center px-2 py-2 text-sm font-medium rounded-md",
+                  location === item.href
+                    ? "bg-primary-50 text-primary-700"
+                    : "text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900"
+                )}
+              >
+                <span
                   className={cn(
-                    "group flex items-center px-2 py-2 text-sm font-medium rounded-md",
-                    location === item.href
-                      ? "bg-primary-50 text-primary-700"
-                      : "text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900"
+                    "mr-3 text-lg",
+                    location === item.href ? "text-primary-500" : "text-neutral-500"
                   )}
                 >
-                  <span
-                    className={cn(
-                      "mr-3 text-lg",
-                      location === item.href ? "text-primary-500" : "text-neutral-500"
-                    )}
-                  >
-                    {item.icon}
-                  </span>
-                  {item.label}
-                </a>
+                  {item.icon}
+                </span>
+                {item.label}
               </Link>
             ))}
             
-            <Link href={role === "admin" ? "/admin/settings" : "/sdr/settings"}>
-              <a className="group flex items-center px-2 py-2 text-sm font-medium rounded-md text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900">
-                <Settings className="mr-3 text-neutral-500 h-5 w-5" />
-                Settings
-              </a>
+            <Link 
+              href={role === "admin" ? "/admin/settings" : "/sdr/settings"}
+              className="group flex items-center px-2 py-2 text-sm font-medium rounded-md text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900"
+            >
+              <Settings className="mr-3 text-neutral-500 h-5 w-5" />
+              Settings
             </Link>
             
             <button

@@ -49,7 +49,7 @@ export function ProspectSearchForm({ onSubmit, isLoading }: ProspectSearchFormPr
       query: "",
       jobTitle: "",
       industry: "",
-      companySize: "",
+      companySize: "any",
       location: "",
       keywords: "",
       channels: ["linkedin", "twitter", "google"],
@@ -144,7 +144,7 @@ export function ProspectSearchForm({ onSubmit, isLoading }: ProspectSearchFormPr
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="">Any size</SelectItem>
+                        <SelectItem value="any">Any size</SelectItem>
                         <SelectItem value="1-10">1-10 employees</SelectItem>
                         <SelectItem value="11-50">11-50 employees</SelectItem>
                         <SelectItem value="51-200">51-200 employees</SelectItem>

@@ -17,7 +17,7 @@ import { Loader2, RotateCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function SavedProspects() {
-  const [selectedStage, setSelectedStage] = useState<string | null>(null);
+  const [selectedStage, setSelectedStage] = useState<string>("all");
   const { toast } = useToast();
 
   // Fetch user's prospects
@@ -56,7 +56,7 @@ export default function SavedProspects() {
   };
 
   const filteredProspects = prospects 
-    ? (selectedStage 
+    ? (selectedStage !== "all"
         ? prospects.filter(p => p.stage === selectedStage)
         : prospects)
     : [];
@@ -100,14 +100,14 @@ export default function SavedProspects() {
             <div className="w-full sm:w-64">
               <label className="text-sm font-medium mb-1 block">Filter by stage</label>
               <Select
-                value={selectedStage || ""}
-                onValueChange={(value) => setSelectedStage(value === "" ? null : value)}
+                value={selectedStage}
+                onValueChange={(value) => setSelectedStage(value)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="All stages" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All stages</SelectItem>
+                  <SelectItem value="all">All stages</SelectItem>
                   {stageOptions.map(option => (
                     <SelectItem key={option.value} value={option.value}>
                       {option.label}
@@ -118,7 +118,10 @@ export default function SavedProspects() {
             </div>
             <div className="flex-1"></div>
             <div className="text-sm text-neutral-500">
-              {filteredProspects.length} {filteredProspects.length === 1 ? 'prospect' : 'prospects'} {selectedStage ? `in ${stageOptions.find(o => o.value === selectedStage)?.label} stage` : 'total'}
+              {filteredProspects.length} {filteredProspects.length === 1 ? 'prospect' : 'prospects'} 
+              {selectedStage !== "all" 
+                ? ` in ${stageOptions.find(o => o.value === selectedStage)?.label} stage` 
+                : ' total'}
             </div>
           </div>
         </CardContent>
@@ -131,7 +134,7 @@ export default function SavedProspects() {
         showStage={true}
         showSavedDate={true}
         isLoading={isLoadingProspects || updateProspectMutation.isPending}
-        emptyMessage={selectedStage 
+        emptyMessage={selectedStage !== "all"
           ? `No prospects in the ${stageOptions.find(o => o.value === selectedStage)?.label} stage` 
           : "You haven't saved any prospects yet. Search for prospects to add them to your list."
         }
