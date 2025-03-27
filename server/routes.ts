@@ -248,6 +248,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: 'Failed to fetch prospects' });
     }
   });
+
+  // Get a single prospect by ID
+  app.get('/api/sdr/prospects/:id', async (req, res) => {
+    try {
+      const user = req.user as Express.User;
+      const { id } = req.params;
+      
+      const prospect = await storage.getProspect(parseInt(id));
+      
+      if (!prospect) {
+        return res.status(404).json({ error: 'Prospect not found' });
+      }
+      
+      if (prospect.userId !== user.id) {
+        return res.status(403).json({ error: 'Not authorized to view this prospect' });
+      }
+      
+      // If the prospect belongs to this channel, get channel details
+      if (prospect.channelId) {
+        const channel = await storage.getChannel(prospect.channelId);
+        if (channel) {
+          // Add channel type and name to the prospect
+          const prospectWithChannel = {
+            ...prospect,
+            channelType: channel.type,
+            channelName: channel.name
+          };
+          return res.json(prospectWithChannel);
+        }
+      }
+      
+      res.json(prospect);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch prospect' });
+    }
+  });
   
   // Update a prospect
   app.patch('/api/sdr/prospects/:id', async (req, res) => {

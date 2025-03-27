@@ -10,6 +10,8 @@ import AdminChannels from "@/pages/admin/channels";
 import SDRDashboard from "@/pages/sdr/dashboard";
 import SDRProspectSearch from "@/pages/sdr/prospect-search";
 import SDRProspects from "@/pages/sdr/prospects";
+import SavedProspects from "@/pages/sdr/saved-prospects";
+import ProspectDetails from "@/pages/sdr/prospect-details";
 
 import { ProtectedRoute } from "@/lib/protected-route";
 import { AuthProvider } from "@/hooks/use-auth";
@@ -40,6 +42,12 @@ function Router() {
       </Route>
       <Route path="/sdr/prospects">
         <ProtectedRoute role="sdr" path="/sdr/prospects" component={SDRProspects} />
+      </Route>
+      <Route path="/sdr/saved-prospects">
+        <ProtectedRoute role="sdr" path="/sdr/saved-prospects" component={SavedProspects} />
+      </Route>
+      <Route path="/sdr/prospect-details/:id">
+        <ProtectedRoute role="sdr" path="/sdr/prospect-details/:id" component={ProspectDetails} />
       </Route>
       
       {/* Redirect root to appropriate dashboard based on role */}

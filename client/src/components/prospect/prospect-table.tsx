@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocation } from "wouter";
 import {
   Table,
   TableBody,
@@ -160,6 +161,15 @@ export function ProspectTable({
     return stage.charAt(0).toUpperCase() + stage.slice(1).replace(/_/g, ' ');
   };
 
+  const [, navigate] = useLocation();
+
+  const navigateToDetails = (prospect: AnalyzedProspect | Prospect) => {
+    // Only navigate to details if this is a saved prospect with an ID
+    if (prospect.id) {
+      navigate(`/sdr/prospect-details/${prospect.id}`);
+    }
+  };
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
@@ -213,9 +223,13 @@ export function ProspectTable({
               </TableHeader>
               <TableBody>
                 {prospects.map((prospect) => (
-                  <TableRow key={prospect.name}>
+                  <TableRow 
+                    key={prospect.name} 
+                    className={prospect.id ? "cursor-pointer hover:bg-neutral-50" : ""}
+                    onClick={() => prospect.id && navigateToDetails(prospect)}
+                  >
                     {showCheckboxes && (
-                      <TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
                         <Checkbox 
                           checked={isSelected(prospect)}
                           onCheckedChange={() => handleSelectProspect(prospect)}
@@ -280,13 +294,16 @@ export function ProspectTable({
                         </Badge>
                       </TableCell>
                     )}
-                    <TableCell className="text-right">
+                    <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                       <div className="flex justify-end space-x-2">
                         <Button
                           variant="ghost"
                           size="sm"
                           className="text-primary-600 hover:text-primary-700"
-                          onClick={() => window.open(prospect.sourceLink, '_blank')}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            window.open(prospect.sourceLink, '_blank');
+                          }}
                         >
                           <ExternalLink className="h-4 w-4 mr-1" />
                           View Profile
