@@ -59,8 +59,8 @@ Description: ${result.description}
 
   // Construct the prompt for the LLM with one-shot examples
   const prompt = `
-You are an AI assistant specialized in sales development and prospect identification. 
-Your task is to analyze search results and identify potential sales prospects based on the provided search query.
+You are an AI assistant specialized in sales development and content research. 
+Your task is to analyze search results and identify valuable content posts (articles, blogs, news, etc.) related to the provided search query.
 
 Search Query: ${searchQuery.query}
 ${searchQuery.jobTitle ? `Job Title: ${searchQuery.jobTitle}` : ''}
@@ -75,51 +75,56 @@ ${formattedChannels}
 Search Results:
 ${formattedResults}
 
-For each search result that represents a potential professional or business profile, extract the following information:
-1. Name (full name of the person)
-2. Title (job title)
-3. Company (company name)
+For each search result that represents valuable content (articles, blog posts, news, etc.), extract the following information:
+1. Name (title of the content)
+2. Title (brief summary or excerpt from the content)
+3. Company (source/publisher of the content)
 4. Most appropriate channel ID from the available channels
-5. Match score (0-100) representing how well this prospect matches the search criteria
+5. Match score (0-100) representing how well this content matches the search criteria
 
-Here are some examples of how to identify prospects and assign match scores:
+Here are some examples of how to identify valuable content and assign match scores:
 
 Example 1:
-Search result: "John Smith - AI Engineer at TechCorp | LinkedIn"
-Description: "AI Engineer with 5 years of experience in machine learning and neural networks."
-- This is a person profile on LinkedIn
-- Name: John Smith
-- Title: AI Engineer 
-- Company: TechCorp
-- Channel: Use the LinkedIn channel ID
-- Match score: High (80-90) if query is about AI or engineering, lower (50-60) for unrelated queries
+Search result: "Top 10 AI Trends for 2025 | TechCrunch"
+Description: "Discover the most important artificial intelligence developments that will shape businesses in the coming year."
+- This is a relevant article from TechCrunch
+- Name: "Top 10 AI Trends for 2025"
+- Title: "Discover the most important artificial intelligence developments that will shape businesses in the coming year."
+- Company: TechCrunch
+- Channel: Use the most appropriate channel ID (e.g., Google or Twitter if shared there)
+- Match score: High (80-90) if query is about AI trends, lower (50-60) for general AI queries
 
 Example 2:
-Search result: "TechCorp - Leading AI Solutions Provider"
-Description: "We provide enterprise AI solutions for businesses. Contact us today."
-- This is a company page, not a person profile. Skip this result.
+Search result: "How to Implement Custom AI Agents for Customer Service | LinkedIn Pulse"
+Description: "A step-by-step guide for integrating AI assistants into your existing customer service workflow."
+- This is a valuable article on LinkedIn Pulse
+- Name: "How to Implement Custom AI Agents for Customer Service"
+- Title: "A step-by-step guide for integrating AI assistants into your existing customer service workflow."
+- Company: LinkedIn
+- Channel: Use the LinkedIn channel ID
+- Match score: Assign based on relevance to the query (high if about AI agents)
 
 Example 3:
-Search result: "Sarah Johnson (@sjohnson) | Twitter"
-Description: "Product Manager working on AI products. Tech enthusiast."
-- This is a person profile on Twitter
-- Name: Sarah Johnson
-- Title: Product Manager
-- Company: (not specified, can be left blank or use reasonable inference)
-- Channel: Use the Twitter channel ID
+Search result: "Breaking: New AI Regulation Framework Announced | AI Daily"
+Description: "Government introduces comprehensive guidelines for responsible AI development and deployment."
+- This is a news article about AI regulations
+- Name: "Breaking: New AI Regulation Framework Announced"
+- Title: "Government introduces comprehensive guidelines for responsible AI development and deployment."
+- Company: AI Daily
+- Channel: Use an appropriate channel ID
 - Match score: Assign based on relevance to the query
 
-Respond with a valid JSON array of prospects where each prospect has the following format:
+Respond with a valid JSON array of content items where each item has the following format:
 {
-  "name": "Full Name",
-  "title": "Job Title",
-  "company": "Company Name",
+  "name": "Content Title",
+  "title": "Content Summary",
+  "company": "Source/Publisher",
   "channelId": [channel ID as a number],
-  "sourceLink": "URL of the profile",
+  "sourceLink": "URL of the content",
   "matchScore": [score from 0-100]
 }
 
-Include only results that appear to be actual people with professional profiles. Be creative in identifying potential prospects even if the information is incomplete. If a search result is ambiguous but might represent a person relevant to the query, include it with appropriate confidence scores. If the query is about a specific technology or service, look for professionals who work with that technology.
+Include only results that appear to be valuable content related to the search query. Be creative in extracting meaningful information even if the search results are partial or ambiguous. Focus on finding high-quality, informative content that would be useful for sales development professionals looking to stay informed about the topics in the search query.
 `;
 
   try {

@@ -32,29 +32,30 @@ function getRandomUserAgent() {
 const USE_LLM_ANALYSIS = true;
 
 // Define fallback dummy data for testing and development if needed
+// These are now content-focused rather than profile-focused
 const TEST_PROFILES = [
   {
-    name: "Sarah Johnson",
-    title: "AI Research Scientist",
-    company: "Autonomous Systems Lab",
-    sourceLink: "https://linkedin.com/in/sara-johnson-ai",
+    name: "10 Innovative AI Agent Applications Transforming Customer Service",
+    title: "Discover how leading companies are implementing AI agents to revolutionize their customer service operations and drive unprecedented satisfaction scores.",
+    company: "LinkedIn",
+    sourceLink: "https://linkedin.com/pulse/ai-agents-customer-service",
     channelId: 1, // LinkedIn
     matchScore: 85
   },
   {
-    name: "Michael Chen",
-    title: "Lead AI Engineer",
-    company: "Custom Agents Inc.",
-    sourceLink: "https://github.com/mchen-ai",
-    channelId: 3, // GitHub treated as Google
+    name: "The Future of Custom AI Agents in Enterprise: Market Report 2025",
+    title: "New research reveals custom AI agents will grow to a $45 billion market by 2027, with early adopters reporting 35% cost savings and improved customer retention rates.",
+    company: "TechCrunch",
+    sourceLink: "https://techcrunch.com/2025/03/15/ai-agents-enterprise-report",
+    channelId: 3, // Google
     matchScore: 95
   },
   {
-    name: "Alex Rodriguez",
-    title: "AI Product Manager",
-    company: "AgentWorks Technologies",
-    sourceLink: "https://twitter.com/alex_ai_pm",
-    channelId: 2, // Twitter
+    name: "How We Built an AI Agent System That Increased Sales by 28%",
+    title: "A detailed technical breakdown of our AI agent implementation for sales automation, including architecture, prompt engineering techniques, and lessons learned from real-world deployment.",
+    company: "Medium",
+    sourceLink: "https://medium.com/@ai_solutions/ai-agent-sales-case-study",
+    channelId: 2, // Twitter (assuming shared on Twitter)
     matchScore: 78
   }
 ];
@@ -412,8 +413,8 @@ async function scrapeSearchEngine(searchUrl: string, query: string): Promise<Scr
 }
 
 /**
- * Analyzes Google search results to extract potential prospects
- * This function uses a rule-based approach to identify professional profiles
+ * Analyzes Google search results to extract relevant content posts
+ * This function uses a rule-based approach to identify valuable content
  */
 export async function extractProspectsFromSearchResults(
   results: ScrapedResult[],
@@ -426,28 +427,38 @@ export async function extractProspectsFromSearchResults(
   
   // Assign each result to an appropriate channel based on keywords and patterns
   for (const result of results) {
-    // Skip if result doesn't look like a person/profile
-    if (!isPotentialProspect(result)) continue;
+    // Skip if result doesn't look like relevant content
+    if (!isRelevantContentPost(result)) continue;
     
     // Find the best matching channel for this result
     const matchedChannel = findBestChannelMatch(result, channels);
     if (!matchedChannel) continue;
     
-    // Extract name, title, company from the result
-    const { name, title, company } = extractProfileInfo(result);
+    // Extract a name for the content post (typically the title)
+    const contentTitle = result.title;
     
-    // If we couldn't extract a name, skip this result
-    if (!name) continue;
+    // For content posts, use the description as the "title" (summary)
+    const contentSummary = result.description || "No description available";
+    
+    // Use the domain as the source/company
+    let contentSource = result.source;
+    if (!contentSource && result.link) {
+      try {
+        contentSource = new URL(result.link).hostname;
+      } catch (e) {
+        contentSource = "Unknown Source";
+      }
+    }
     
     // Calculate a match score based on the search query
     const matchScore = calculateMatchScore(result, query);
     
     prospects.push({
-      name,
-      title,
-      company,
-      profileUrl: result.link,
-      sourceLink: result.link,
+      name: contentTitle,             // Use post title as name
+      title: contentSummary,          // Use description as title/summary
+      company: contentSource,         // Use domain/source as company
+      profileUrl: result.link,        // Content URL
+      sourceLink: result.link,        // Content URL
       channel: matchedChannel,
       channelId: matchedChannel.id,
       channelType: matchedChannel.type,
@@ -460,33 +471,41 @@ export async function extractProspectsFromSearchResults(
 }
 
 /**
- * Determines if a search result might represent a professional profile
+ * Determines if a search result might represent a relevant content post
  */
-function isPotentialProspect(result: ScrapedResult): boolean {
+function isRelevantContentPost(result: ScrapedResult): boolean {
   const { title, description, source, link } = result;
   const text = `${title} ${description} ${source}`.toLowerCase();
   
-  // Define patterns that suggest this is a person's profile
-  const personIndicators = [
-    'profile', 'linkedin', 'twitter', 'professional', 'resume', 
-    'cv', 'bio', 'about me', 'experience', 'skills'
+  // Define patterns that suggest this is a valuable content post
+  const contentIndicators = [
+    'article', 'blog', 'post', 'news', 'update', 'insight', 'analysis', 
+    'guide', 'tutorial', 'how to', 'learn', 'discover', 'explore',
+    'case study', 'whitepaper', 'report', 'research', 'findings',
+    'trends', 'innovations', 'developments', 'applications'
   ];
   
-  // Check if URL is from a professional networking site
-  const profileSites = [
-    'linkedin.com/in/', 'twitter.com/', 'github.com/', 
-    'instagram.com/', 'facebook.com/', 'medium.com/@'
+  // Sites that typically host valuable content
+  const contentSites = [
+    'medium.com', 'substack.com', 'blog.', '.blog', 
+    'news.', '.news', 'article', 'post',
+    'linkedin.com/pulse', 'twitter.com/status', 'facebook.com/posts',
+    'dev.to', 'hackernoon.com', 'techcrunch.com', 'wired.com',
+    'github.com/blog', 'reddit.com/r/', 'quora.com/q/'
   ];
   
   // Check URL patterns
-  const isProfileUrl = profileSites.some(site => link.includes(site));
+  const isContentUrl = !!(link && contentSites.some(site => link.includes(site)));
   
   // Check content patterns
-  const hasPersonIndicator = personIndicators.some(indicator => 
+  const hasContentIndicator = contentIndicators.some(indicator => 
     text.includes(indicator)
   );
   
-  return isProfileUrl || hasPersonIndicator;
+  // Also include results with substantial description text
+  const hasSubstantialDescription = !!(description && description.length > 100);
+  
+  return isContentUrl || hasContentIndicator || hasSubstantialDescription;
 }
 
 /**
@@ -660,26 +679,26 @@ export async function searchProspects(searchQuery: SearchQuery, channels: Channe
     if (searchResults.length === 0) {
       console.log('No search results found from web scraping, using fallback data for AI testing');
       
-      // Create mock search results for AI testing if real scraping fails
-      // This allows us to still test the AI analysis functionality
+      // Create mock content-based search results for AI testing if real scraping fails
+      // This allows us to still test the AI analysis functionality with content posts
       const mockSearchResults: ScrapedResult[] = [
         {
-          title: "Sarah Johnson - AI Research Scientist at Autonomous Systems Lab | LinkedIn",
-          link: "https://linkedin.com/in/sara-johnson-ai",
-          description: "AI Research Scientist with expertise in developing custom AI agents for enterprise applications. 5+ years experience in NLP and ML model development.",
+          title: "10 Innovative AI Agent Applications Transforming Customer Service | LinkedIn Pulse",
+          link: "https://linkedin.com/pulse/ai-agents-customer-service",
+          description: "Discover how leading companies are implementing AI agents to revolutionize their customer service operations and drive unprecedented satisfaction scores.",
           source: "linkedin.com"
         },
         {
-          title: "Michael Chen (@mchen_ai) | Twitter",
-          link: "https://twitter.com/mchen_ai",
-          description: "Lead AI Engineer at Custom Agents Inc. Building the next generation of autonomous agents for business process automation.",
-          source: "twitter.com"
+          title: "The Future of Custom AI Agents in Enterprise: Market Report 2025 | TechCrunch",
+          link: "https://techcrunch.com/2025/03/15/ai-agents-enterprise-report",
+          description: "New research reveals custom AI agents will grow to a $45 billion market by 2027, with early adopters reporting 35% cost savings and improved customer retention rates.",
+          source: "techcrunch.com"
         },
         {
-          title: "Alex Rodriguez - AI Product Manager - AgentWorks Technologies",
-          link: "https://github.com/alex_ai_pm",
-          description: "Product manager overseeing development of custom AI agents and conversational systems for enterprise customers.",
-          source: "github.com"
+          title: "How We Built an AI Agent System That Increased Sales by 28% | Medium",
+          link: "https://medium.com/@ai_solutions/ai-agent-sales-case-study",
+          description: "A detailed technical breakdown of our AI agent implementation for sales automation, including architecture, prompt engineering techniques, and lessons learned from real-world deployment.",
+          source: "medium.com"
         }
       ];
       
@@ -746,7 +765,7 @@ export async function searchProspects(searchQuery: SearchQuery, channels: Channe
 }
 
 /**
- * Build an enhanced search query for Google to find professional profiles
+ * Build an enhanced search query for Google to find relevant content posts
  */
 function buildEnhancedQuery(searchQuery: SearchQuery): string {
   const { query, jobTitle, industry, location, companySize } = searchQuery;
@@ -758,12 +777,12 @@ function buildEnhancedQuery(searchQuery: SearchQuery): string {
   if (query.toLowerCase().includes('ai') || 
       query.toLowerCase().includes('agent') || 
       query.toLowerCase().includes('artificial intelligence')) {
-    enhancedQuery = `${query} "AI developer" OR "AI engineer" OR "AI product manager" OR "AI researcher"`;
+    enhancedQuery = `${query} "AI trends" OR "AI applications" OR "AI case study" OR "AI news"`;
   }
   
-  // Add job title if provided
+  // Add job title if provided, but focus on content about it rather than people
   if (jobTitle) {
-    enhancedQuery += ` "${jobTitle}"`;
+    enhancedQuery += ` "${jobTitle}" insights OR trends OR report`;
   }
   
   // Add industry if provided
@@ -776,21 +795,27 @@ function buildEnhancedQuery(searchQuery: SearchQuery): string {
     enhancedQuery += ` ${location}`;
   }
   
-  // Expand search terms with alternative profile sources
-  const profileSources = [
-    'linkedin.com/in', 
-    'twitter.com', 
-    'github.com', 
-    'medium.com/@', 
-    'profile',
-    'bio',
-    '"head of"',
-    '"works at"',
-    '"working on"'
+  // Expand search terms with content-focused sources
+  const contentSources = [
+    'blog', 
+    'article', 
+    'news',
+    'post',
+    'report',
+    'linkedin.com/pulse', 
+    'twitter.com/status', 
+    'medium.com', 
+    'substack.com',
+    'techcrunch.com',
+    'wired.com',
+    'guide',
+    'tutorial',
+    'whitepaper',
+    'case study'
   ];
   
-  // Add site-specific search terms to find profiles
-  enhancedQuery += ` (${profileSources.join(' OR ')})`;
+  // Add content-focused search terms
+  enhancedQuery += ` (${contentSources.join(' OR ')})`;
   
   return enhancedQuery;
 }
