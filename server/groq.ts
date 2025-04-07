@@ -8,7 +8,7 @@ const groq = new OpenAI({
 });
 
 // Default model to use for Groq
-const MODEL = "llama3-70b-8192";
+const MODEL = "llama3-8b-8192";
 
 interface ProspectSearchResult {
   name: string;
@@ -60,7 +60,7 @@ Description: ${result.description}
   // Construct the prompt for the LLM with one-shot examples
   const prompt = `
 You are an AI assistant specialized in sales development and content research. 
-Your task is to analyze search results and identify valuable content posts (articles, blogs, news, etc.) related to the provided search query.
+Your task is to analyze search results and identify people & their valuable content posts talking about the service which is mentioned (articles, blogs, news, etc.) in the provided search query.
 
 Search Query: ${searchQuery.query}
 ${searchQuery.jobTitle ? `Job Title: ${searchQuery.jobTitle}` : ''}
@@ -75,12 +75,13 @@ ${formattedChannels}
 Search Results:
 ${formattedResults}
 
-For each search result that represents valuable content (articles, blog posts, news, etc.), extract the following information:
+For each search result that represents person with their valuable content (articles, blog posts, news, etc.), extract the following information:
 1. Name (title of the content)
 2. Title (brief summary or excerpt from the content)
 3. Company (source/publisher of the content)
 4. Most appropriate channel ID from the available channels
 5. Match score (0-100) representing how well this content matches the search criteria
+6. Name of the respective person(Who's post is this?)
 
 Here are some examples of how to identify valuable content and assign match scores:
 
@@ -93,6 +94,7 @@ Description: "Discover the most important artificial intelligence developments t
 - Company: TechCrunch
 - Channel: Use the most appropriate channel ID (e.g., Google or Twitter if shared there)
 - Match score: High (80-90) if query is about AI trends, lower (50-60) for general AI queries
+- Person Name : Specify the person's name who has posted the article, blogs, news, posts, etc.
 
 Example 2:
 Search result: "How to Implement Custom AI Agents for Customer Service | LinkedIn Pulse"
@@ -103,6 +105,7 @@ Description: "A step-by-step guide for integrating AI assistants into your exist
 - Company: LinkedIn
 - Channel: Use the LinkedIn channel ID
 - Match score: Assign based on relevance to the query (high if about AI agents)
+- Person Name : Specify the person's name who has posted the article, blogs, news, posts, etc.
 
 Example 3:
 Search result: "Breaking: New AI Regulation Framework Announced | AI Daily"
@@ -113,6 +116,7 @@ Description: "Government introduces comprehensive guidelines for responsible AI 
 - Company: AI Daily
 - Channel: Use an appropriate channel ID
 - Match score: Assign based on relevance to the query
+- Person Name : Specify the person's name who has posted the article, blogs, news, posts, etc.
 
 Respond with a valid JSON array of content items where each item has the following format:
 {
@@ -121,7 +125,8 @@ Respond with a valid JSON array of content items where each item has the followi
   "company": "Source/Publisher",
   "channelId": [channel ID as a number],
   "sourceLink": "URL of the content",
-  "matchScore": [score from 0-100]
+  "matchScore": [score from 0-100],
+  "personName": "Person's Name"
 }
 
 Include only results that appear to be valuable content related to the search query. Be creative in extracting meaningful information even if the search results are partial or ambiguous. Focus on finding high-quality, informative content that would be useful for sales development professionals looking to stay informed about the topics in the search query.
@@ -134,7 +139,7 @@ Include only results that appear to be valuable content related to the search qu
     const response = await groq.chat.completions.create({
       model: MODEL,
       messages: [{ role: "user", content: prompt }],
-      temperature: 0.2,
+      temperature: 0.7,
       response_format: { type: "json_object" },
     });
 

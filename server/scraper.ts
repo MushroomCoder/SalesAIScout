@@ -95,7 +95,7 @@ async function scrapeSearchEngine(searchUrl: string, query: string): Promise<Scr
     // Launch a headless browser with improved anti-detection settings
     const browser = await puppeteer.launch({
       headless: true,
-      executablePath: '/nix/store/zi4f80l169xlmivz8vja8wlphq74qqk0-chromium-125.0.6422.141/bin/chromium',
+      executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
       args: [
         '--no-sandbox', 
         '--disable-setuid-sandbox', 
