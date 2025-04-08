@@ -129,6 +129,7 @@ async function scrapeSearchEngine(searchUrl: string, query: string): Promise<Scr
         '--disable-blink-features=AutomationControlled' 
       ],
       ignoreDefaultArgs: ['--disable-extensions'],
+      timeout: 60000,
     });
     
     const page = await browser.newPage();
