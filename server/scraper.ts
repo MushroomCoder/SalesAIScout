@@ -96,6 +96,7 @@ async function scrapeSearchEngine(searchUrl: string, query: string): Promise<Scr
     const browser = await puppeteer.launch({
       headless: true,
       // executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+      executablePath: '/opt/render/.cache/puppeteer/chrome/linux-135.0.7049.42/chrome-linux64/chrome',
       args: [
         '--no-sandbox', 
         '--disable-setuid-sandbox', 
