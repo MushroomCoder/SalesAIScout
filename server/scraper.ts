@@ -113,9 +113,9 @@ async function scrapeSearchEngine(searchUrl: string, query: string): Promise<Scr
 
     const browser = await puppeteer.launch({
       headless: true,
-      executablePath: process.env.NODE_ENV === 'development' 
-        ? process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/google-chrome' 
-        : puppeteer.executablePath(),
+      // executablePath: process.env.NODE_ENV === 'development' 
+      //   ? process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/google-chrome' 
+      //   : puppeteer.executablePath(),
       args: [
         '--no-sandbox', 
         '--disable-setuid-sandbox', 
