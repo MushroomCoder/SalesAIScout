@@ -92,10 +92,30 @@ async function scrapeSearchEngine(searchUrl: string, query: string): Promise<Scr
     // Pick a random user agent to appear more like a regular user
     const userAgent = getRandomUserAgent();
     
-    // Launch a headless browser with improved anti-detection settings
+    // // Launch a headless browser with improved anti-detection settings
+    // const browser = await puppeteer.launch({
+    //   headless: true,
+    //   // executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+    //   args: [
+    //     '--no-sandbox', 
+    //     '--disable-setuid-sandbox', 
+    //     '--disable-gpu',
+    //     '--disable-dev-shm-usage',
+    //     '--disable-web-security',
+    //     '--disable-features=IsolateOrigins,site-per-process',
+    //     '--disable-extensions',
+    //     '--window-size=1920,1080',
+    //     '--ignore-certificate-errors',
+    //     '--disable-blink-features=AutomationControlled' // Prevents detection as automated browser
+    //   ],
+    //   ignoreDefaultArgs: ['--disable-extensions'],
+    // });
+
     const browser = await puppeteer.launch({
       headless: true,
-      // executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+      executablePath: process.env.NODE_ENV === 'development' 
+        ? process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/google-chrome' 
+        : puppeteer.executablePath(),
       args: [
         '--no-sandbox', 
         '--disable-setuid-sandbox', 
@@ -106,8 +126,9 @@ async function scrapeSearchEngine(searchUrl: string, query: string): Promise<Scr
         '--disable-extensions',
         '--window-size=1920,1080',
         '--ignore-certificate-errors',
-        '--disable-blink-features=AutomationControlled' // Prevents detection as automated browser
-      ]
+        '--disable-blink-features=AutomationControlled' 
+      ],
+      ignoreDefaultArgs: ['--disable-extensions'],
     });
     
     const page = await browser.newPage();
