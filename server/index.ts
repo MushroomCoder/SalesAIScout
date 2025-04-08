@@ -58,8 +58,12 @@ app.use((req, res, next) => {
   }
 
   // Explicitly parse the port as a number
+  // const port = Number(process.env.PORT || 7000);
+  // server.listen(port, '127.0.0.1', () => {
+  //   log(`serving on port ${port}`);
+  // Explicitly parse the port as a number
   const port = Number(process.env.PORT || 7000);
-  server.listen(port, '127.0.0.1', () => {
+  server.listen(port, '0.0.0.0', () => {
     log(`serving on port ${port}`);
   });
 })();
